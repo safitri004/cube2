@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monitoring & Evaluasi Survei Pemotongan Ternak</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f4f7fb;color:#1f2937}
+header{background:linear-gradient(135deg,#7c4a2d,#b86f3c);color:#fff;padding:24px 5%;box-shadow:0 3px 12px #0002}
+header h1{margin:0 0 6px;font-size:25px}header p{margin:0;opacity:.9}
+.container{width:90%;max-width:1400px;margin:24px auto}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px}
+.card{background:#fff;border-radius:14px;padding:19px;box-shadow:0 3px 12px #0000000d;border:1px solid #e8edf3}
+.card .label{font-size:13px;color:#64748b}.card .value{font-size:28px;font-weight:700;margin-top:7px;color:#7c4a2d}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}.tab{border:0;background:#e5edf5;padding:11px 18px;border-radius:9px;cursor:pointer;font-weight:600;color:#334155}.tab.active{background:#0f4c81;color:#fff}
+.panel{display:none;background:#fff;border-radius:14px;padding:22px;box-shadow:0 3px 12px #0000000d}.panel.active{display:block}
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px}select,input,textarea,button{font:inherit}select,input,textarea{border:1px solid #d7dee8;border-radius:8px;padding:9px 11px;background:#fff}button.primary{background:#8b5e3c;color:#fff;border:0;border-radius:8px;padding:10px 16px;cursor:pointer}button.secondary{background:#e8eef5;color:#334155;border:0;border-radius:8px;padding:10px 16px;cursor:pointer}
+.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:800px}th,td{padding:11px 10px;border-bottom:1px solid #e8edf3;text-align:left;font-size:13px}th{background:#f1f5f9;color:#475569}.status{display:inline-block;padding:5px 9px;border-radius:20px;font-size:12px;font-weight:700}.done{background:#dcfce7;color:#166534}.pending{background:#fef3c7;color:#92400e}.late{background:#fee2e2;color:#991b1b}
+.progress{height:9px;background:#e7edf3;border-radius:10px;overflow:hidden}.progress span{display:block;height:100%;background:#d58a52;border-radius:10px}
+.grid2{display:grid;grid-template-columns:1.3fr 1fr;gap:20px}.chart{height:290px;display:flex;align-items:flex-end;gap:18px;padding:20px 15px;border-bottom:1px solid #dce3eb}.barbox{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px}.bar{width:55%;max-width:55px;background:linear-gradient(#1687c9,#0f4c81);border-radius:7px 7px 0 0;min-height:4px}.barlabel{font-size:12px;color:#64748b}.barvalue{font-size:11px;font-weight:bold}
+.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:15px}.form-group{display:flex;flex-direction:column;gap:6px}.form-group.full{grid-column:1/-1}.form-group label{font-size:13px;font-weight:700;color:#475569}.notice{padding:12px 14px;border-radius:9px;background:#eff6ff;color:#1e40af;margin-bottom:15px;font-size:13px}
+footer{text-align:center;color:#64748b;font-size:12px;padding:30px}
+@media(max-width:900px){.cards{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}}
+@media(max-width:600px){.cards{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.container{width:94%}}
+</style>
+</head>
+<body>
+<div id="loginScreen" style="position:fixed;inset:0;background:#0006;z-index:9999;display:none;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;width:100%;max-width:420px;border-radius:16px;padding:30px;box-shadow:0 8px 30px #0002">
+    <h2 style="margin-top:0;color:#7c4a2d">Login untuk Konfirmasi</h2>
+    <p style="font-size:13px;color:#64748b">Silakan masuk menggunakan akun masing-masing.</p>
+    <div class="form-group" style="margin-bottom:14px"><label>Username</label><input id="loginUser" placeholder="Contoh: bangka01"></div>
+    <div class="form-group" style="margin-bottom:14px"><label>Password</label><input id="loginPass" type="password" placeholder="Password"></div>
+    <div class="form-group" style="margin-bottom:14px"><label>Peran</label><select id="loginRole"><option value="kabkota">Kabupaten/Kota</option><option value="provinsi">Provinsi</option></select></div>
+    <div id="loginKabWrap" class="form-group" style="margin-bottom:16px"><label>Kabupaten/Kota</label><select id="loginKab"></select></div>
+    <button class="primary" style="width:100%" onclick="login()">Masuk</button>
+    <p style="font-size:11px;color:#94a3b8;margin-bottom:0">Demo front-end: akun tersimpan di browser. Untuk sistem produksi, autentikasi perlu dipindahkan ke server/database.</p>
+  </div>
+</div>
+
+<header>
+  <h1>Monitoring & Evaluasi Survei Laporan Pemotongan Ternak Bulanan</h1>
+  <p>Provinsi Kepulauan Bangka Belitung</p>
+<div id="userBar" style="margin-top:10px;font-size:12px;display:none;justify-content:flex-end;gap:10px;align-items:center"><span id="loggedUser"></span><button class="secondary" onclick="logout()">Keluar</button></div>
+</header>
+<div style="width:90%;max-width:1400px;margin:10px auto 0;font-size:12px">
+  <span id="dbStatus" class="status pending">Mode lokal</span>
+</div>
+
+<div class="container">
+  <div class="cards">
+    <div class="card"><div class="label">Kabupaten/Kota</div><div class="value">7</div></div>
+    <div class="card"><div class="label">Sudah Mengirim</div><div class="value" id="sentCount">0</div></div>
+    <div class="card"><div class="label">Belum Mengirim</div><div class="value" id="pendingCount">7</div></div>
+    <div class="card"><div class="label">Progres Pendataan</div><div class="value" id="progressValue">0%</div></div>
+  </div>
+
+  <div class="card" style="margin-bottom:22px">
+    <h3 style="margin-top:0">Distribusi Sampel</h3>
+    <p style="font-size:13px;color:#64748b">Total sampel: <b>21 sampel</b>. Jumlah sampel per kabupaten/kota dapat disesuaikan dengan desain sampel.</p>
+    <div id="sampleGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px"></div>
+    <div style="margin-top:12px;font-size:13px"><b>Total saat ini: <span id="sampleTotal">0</span> sampel</b></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('monitoring',this)">Monitoring Pendataan</button>
+    <button class="tab" onclick="showTab('evaluasi',this)">Evaluasi Bulanan</button>
+    <button class="tab" onclick="showTab('konfirmasi',this)">Konfirmasi Kabupaten/Kota</button>
+  </div>
+
+  <section id="monitoring" class="panel active">
+    <h2>Monitoring Progres Pendataan</h2>
+    <div class="toolbar">
+      <select id="month"><option>Januari</option><option>Februari</option><option>Maret</option><option>April</option><option>Mei</option><option>Juni</option><option>Juli</option><option>Agustus</option><option>September</option><option>Oktober</option><option>November</option><option>Desember</option></select>
+      <select id="year"><option>2026</option><option>2025</option><option>2024</option></select>
+      <button class="primary" onclick="resetData()">Reset Data Bulan</button>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>No</th><th>Kabupaten/Kota</th><th>Sampel</th><th>Status</th><th>Tanggal Kirim</th><th>Progres</th><th>Catatan</th></tr></thead><tbody id="monitorBody"></tbody></table></div>
+  </section>
+
+  <section id="evaluasi" class="panel">
+    <h2>Evaluasi Data Bulanan</h2>
+    <div class="toolbar">
+      <select id="evalMonth" onchange="renderEvaluation()"><option>Januari</option><option>Februari</option><option>Maret</option><option>April</option><option>Mei</option><option>Juni</option><option>Juli</option><option>Agustus</option><option>September</option><option>Oktober</option><option>November</option><option>Desember</option></select>
+      <select id="evalYear" onchange="renderEvaluation()"><option>2026</option><option>2025</option><option>2024</option></select>
+    </div>
+    <div class="grid2">
+      <div class="card"><h3>Perbandingan Jumlah Pemotongan</h3><div id="chart" class="chart"></div></div>
+      <div class="card"><h3>Ringkasan Evaluasi</h3><div id="summary"></div></div>
+    </div>
+    <br>
+    <div class="table-wrap"><table><thead><tr><th>Kabupaten/Kota</th><th>Bulan Berjalan</th><th>Bulan Sebelumnya</th><th>Perubahan MoM</th><th>Tahun Sebelumnya</th><th>Perubahan YoY</th></tr></thead><tbody id="evalBody"></tbody></table></div>
+
+    <br>
+    <div class="card">
+      <h3 style="margin-top:0">Input / Perbarui Evaluasi (khusus akun Provinsi)</h3>
+      <p style="font-size:12px;color:#64748b;margin-top:-6px">Nilai disimpan per Kabupaten/Kota, Nama Sampel dan Indikator. Data otomatis ditandai "Menunggu konfirmasi" bila perubahan absolut lebih dari 50%.</p>
+      <form id="evalForm">
+        <div class="form-grid">
+          <div class="form-group"><label>Kabupaten/Kota</label><select id="evalKab" required></select></div>
+          <div class="form-group"><label>Nama Sampel</label><select id="evalNama" required></select></div>
+          <div class="form-group"><label>Indikator</label><input id="evalIndikator" placeholder="mis. Jumlah sapi" required></div>
+          <div class="form-group"><label>Bulan</label><select id="evalFormMonth"><option>Januari</option><option>Februari</option><option>Maret</option><option>April</option><option>Mei</option><option>Juni</option><option>Juli</option><option>Agustus</option><option selected>September</option><option>Oktober</option><option>November</option><option>Desember</option></select></div>
+          <div class="form-group"><label>Tahun</label><input id="evalFormYear" type="number" value="2026" required></div>
+          <div class="form-group"><label>Nilai Bulan Ini</label><input id="evalNilai" type="number" min="0" value="0" required></div>
+          <div class="form-group"><label>Nilai Bulan Sebelumnya</label><input id="evalPrev" type="number" min="0" value="0"></div>
+          <div class="form-group"><label>Nilai Tahun Sebelumnya</label><input id="evalOld" type="number" min="0" value="0"></div>
+          <div class="form-group full"><label>Catatan</label><textarea id="evalCatatan" rows="2" placeholder="Opsional"></textarea></div>
+          <div class="form-group full"><button class="primary" type="submit">Simpan Evaluasi</button></div>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section id="konfirmasi" class="panel">
+    <h2>Konfirmasi Kabupaten/Kota</h2>
+    <div class="notice">Tabel evaluasi di bawah diisi oleh Provinsi. Kabupaten/Kota kemudian melakukan konfirmasi atas temuan tersebut. Nama petugas otomatis diambil dari akun yang sedang login.</div>
+
+    <h3>Evaluasi dari Provinsi yang Memerlukan Konfirmasi</h3>
+    <div class="toolbar">
+      <select id="provEvalMonth" onchange="renderProvinceEvaluations()"><option>Januari</option><option>Februari</option><option>Maret</option><option>April</option><option>Mei</option><option>Juni</option><option>Juli</option><option>Agustus</option><option>September</option><option>Oktober</option><option>November</option><option>Desember</option></select>
+      <select id="provEvalYear" onchange="renderProvinceEvaluations()"><option>2026</option><option>2025</option><option>2024</option></select>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>Kab/Kota</th><th>Nama Sampel</th><th>Periode</th><th>Indikator</th><th>Nilai</th><th>Bulan Sebelumnya</th><th>Tahun Sebelumnya</th><th>Perubahan</th><th>Status</th></tr></thead><tbody id="provinceEvalBody"></tbody></table></div>
+
+    <br>
+    <h3>Form Konfirmasi</h3>
+    <form id="confirmForm">
+      <input type="hidden" id="selectedEvalId">
+      <div class="form-grid">
+        <div class="form-group"><label>Kabupaten/Kota</label><select id="kab" required></select></div>
+        <div class="form-group"><label>Nama Sampel</label><select id="namaSampel" required></select></div>
+        <div class="form-group"><label>Bulan</label><select id="confMonth"><option>Januari</option><option>Februari</option><option>Maret</option><option>April</option><option>Mei</option><option>Juni</option><option>Juli</option><option>Agustus</option><option>September</option><option>Oktober</option><option>November</option><option>Desember</option></select></div>
+        <div class="form-group"><label>Tahun</label><input id="confYear" type="number" value="2026" required></div>
+        <div class="form-group"><label>Status Konfirmasi</label><select id="confStatus"><option>Data sudah sesuai</option><option>Data perlu diperbaiki</option><option>Data masih dalam proses pengecekan</option><option>Tidak dapat dikonfirmasi</option></select></div>
+        <div class="form-group"><label>Nama Petugas</label><input id="petugas" readonly></div>
+        <div class="form-group"><label>Jumlah Pemotongan yang Dikonfirmasi</label><input id="jumlahKonfirmasi" type="number" min="0" value="0"></div>
+        <div class="form-group"><label>Tanggal Konfirmasi</label><input id="tgl" type="date"></div>
+        <div class="form-group full"><label>Catatan/Keterangan</label><textarea id="catatan" rows="4" placeholder="Jelaskan penyebab perubahan atau hasil pengecekan..."></textarea></div>
+        <div class="form-group full"><button class="primary" type="submit">Simpan Konfirmasi</button></div>
+      </div>
+    </form>
+    <br>
+    <h3>Riwayat Konfirmasi</h3>
+    <div class="table-wrap"><table><thead><tr><th>Kab/Kota</th><th>Nama Sampel</th><th>Periode</th><th>Status</th><th>Nilai Konfirmasi</th><th>Petugas</th><th>Catatan</th><th>Aksi</th></tr></thead><tbody id="confirmBody"></tbody></table></div>
+  </section>
+</div>
+
+<footer>Monitoring & Evaluasi • Survei Laporan Pemotongan Ternak Bulanan • BPS Provinsi Kepulauan Bangka Belitung</footer>
+
+<script>
+/* =========================
+   KONFIGURASI GOOGLE APPS SCRIPT
+   =========================
+   1. Import database_seed.xlsx ke Google Sheets (atau jalankan setupSheets()
+      dari editor Apps Script pada spreadsheet kosong).
+   2. Isi SPREADSHEET_ID pada Code.gs, lalu Deploy sebagai Web App.
+   3. Salin URL /exec ke APPS_SCRIPT_URL di bawah ini.
+   Backend Apps Script menerima action:
+      getAllData, getMonitoring, getSamples, getEvaluations, getConfirmations,
+      getUsers, getReference, login, saveMonitoring, saveEvaluation,
+      updateEvaluationStatus, saveConfirmation
+*/
+const APPS_SCRIPT_URL = ""; // contoh: https://script.google.com/macros/s/XXXXXXXX/exec
+const USE_APPS_SCRIPT = APPS_SCRIPT_URL.trim() !== "";
+
+async function api(action, payload={}){
+  if(!USE_APPS_SCRIPT){
+    return {ok:false, local:true, message:"APPS_SCRIPT_URL belum diisi. Sistem menggunakan LocalStorage."};
+  }
+  try{
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method:"POST",
+      headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify({action,...payload})
+    });
+    const data = await res.json();
+    return data;
+  }catch(err){
+    console.error("Apps Script:",err);
+    return {ok:false, message:"Gagal terhubung ke database Apps Script."};
+  }
+}
+
+const kabupaten=["Bangka","Belitung","Bangka Barat","Bangka Tengah","Bangka Selatan","Belitung Timur","Pangkalpinang"];
+const key="monitoring_pemotongan_ternak_v2";
+const confKey="konfirmasi_pemotongan_ternak_v2";
+const sampleKey="sampel_pemotongan_ternak_v2";
+const evalKey="evaluasi_provinsi_pemotongan_ternak_v2";
+
+let sampleDefaults={
+ "Bangka":["Sampel 01","Sampel 02","Sampel 03"],
+ "Belitung":["Sampel 04","Sampel 05","Sampel 06"],
+ "Bangka Barat":["Sampel 07","Sampel 08","Sampel 09"],
+ "Bangka Tengah":["Sampel 10","Sampel 11","Sampel 12"],
+ "Bangka Selatan":["Sampel 13","Sampel 14","Sampel 15"],
+ "Belitung Timur":["Sampel 16","Sampel 17","Sampel 18"],
+ "Pangkalpinang":["Sampel 19","Sampel 20","Sampel 21"]
+};
+
+// ---------- pemetaan data server (array baris sheet) -> struktur lokal ----------
+function mapMonitoringToLocal(arr){
+ let d={};
+ arr.forEach(r=>{
+  let kb=r["Kabupaten/Kota"], bl=r["Bulan"], th=r["Tahun"];
+  if(!kb||!bl||!th) return;
+  let p=th+"-"+bl;
+  d[p]=d[p]||{};
+  d[p][kb]={
+   status:r["Status"]||"Belum Mengirim",
+   tanggal:r["Tanggal Kirim"]||"-",
+   progress:Number(r["Progress (%)"]||0),
+   catatan:r["Catatan"]||"",
+   jumlahSampel:Number(r["Jumlah Sampel"]||0)
+  };
+ });
+ return d;
+}
+function mapSamplesToLocal(arr){
+ let s={};
+ arr.forEach(r=>{
+  let kb=r["Kabupaten/Kota"], nm=r["Nama Sampel"];
+  if(!kb||!nm) return;
+  s[kb]=s[kb]||[];
+  s[kb].push(nm);
+ });
+ kabupaten.forEach(k=>{ if(!s[k]||!s[k].length) s[k]=sampleDefaults[k]; });
+ return s;
+}
+function mapEvaluationsToLocal(arr){
+ return arr.map(r=>({
+  id:r["ID"], kab:r["Kabupaten/Kota"], nama:r["Nama Sampel"], bulan:r["Bulan"], tahun:Number(r["Tahun"]),
+  indikator:r["Indikator"], nilai:Number(r["Nilai"]||0), prev:Number(r["Bulan Sebelumnya"]||0),
+  old:Number(r["Tahun Sebelumnya"]||0), status:r["Status"]||"", catatan:r["Catatan"]||""
+ }));
+}
+function mapConfirmationsToLocal(arr){
+ return arr.map(r=>({
+  id:r["ID"], evalId:r["EvaluationID"], kab:r["Kabupaten/Kota"], namaSampel:r["Nama Sampel"],
+  bulan:r["Bulan"], tahun:r["Tahun"], status:r["Status"],
+  jumlah:r["Jumlah Konfirmasi"], petugas:r["Petugas"], tgl:r["Tanggal Konfirmasi"], catatan:r["Catatan"]
+ }));
+}
+
+async function loadFromAppsScript(){
+ if(!USE_APPS_SCRIPT) return;
+ const result=await api("getAllData");
+ if(!result.ok){ console.error(result.message); return; }
+ if(result.monitoring) saveData(mapMonitoringToLocal(result.monitoring));
+ if(result.samples) localStorage.setItem(sampleKey,JSON.stringify(mapSamplesToLocal(result.samples)));
+ if(result.evaluations) localStorage.setItem(evalKey,JSON.stringify(mapEvaluationsToLocal(result.evaluations)));
+ if(result.confirmations) localStorage.setItem(confKey,JSON.stringify(mapConfirmationsToLocal(result.confirmations)));
+ renderMonitoring();
+ renderEvaluation();
+ renderProvinceEvaluations();
+ renderConfirmations();
+}
+
+async function saveMonitoringToServer(record){
+ if(!USE_APPS_SCRIPT) return;
+ const result=await api("saveMonitoring",{record});
+ if(!result.ok) alert(result.message||"Data belum berhasil dikirim ke server.");
+}
+async function saveConfirmationToServer(record){
+ if(!USE_APPS_SCRIPT) return;
+ const result=await api("saveConfirmation",{record});
+ if(!result.ok) alert(result.message||"Data belum berhasil dikirim ke server.");
+}
+async function saveEvaluationToServer(record){
+ if(!USE_APPS_SCRIPT) return;
+ const result=await api("saveEvaluation",{record});
+ if(!result.ok) alert(result.message||"Evaluasi belum berhasil dikirim ke server.");
+}
+
+function getData(){return JSON.parse(localStorage.getItem(key)||"{}")}
+function saveData(d){localStorage.setItem(key,JSON.stringify(d))}
+function period(){return document.getElementById("year").value+"-"+document.getElementById("month").value}
+function getSamples(){return JSON.parse(localStorage.getItem(sampleKey)||JSON.stringify(sampleDefaults))}
+function getUser(){return JSON.parse(sessionStorage.getItem("loggedUser")||"null")}
+
+function requireLogin(){
+ const u=getUser();
+ if(u){petugas.value=u.nama;return true;}
+ loginScreen.style.display="flex";
+ loginUser.value="";loginPass.value="";
+ return false;
+}
+
+function showTab(id,btn){
+ if(id==="konfirmasi" && !requireLogin()) return;
+ document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));document.getElementById(id).classList.add("active");btn.classList.add("active");if(id==="monitoring")renderMonitoring();if(id==="evaluasi")renderEvaluation();if(id==="konfirmasi"){petugas.value=getUser()?.nama||"";renderProvinceEvaluations();renderConfirmations()}}
+
+// ---------- MONITORING ----------
+function renderMonitoring(){
+ let d=getData(),p=period(),html="",sent=0;
+ let samples=getSamples();
+ let u=getUser();
+ kabupaten.forEach((k,i)=>{
+  let x=d[p]?.[k]||{status:"Belum Mengirim",tanggal:"-",progress:0,catatan:"",jumlahSampel:(samples[k]||[]).length};
+  let jumlah=x.jumlahSampel||(samples[k]||[]).length;
+  if(x.status==="Sudah Mengirim")sent++;
+  let canEdit = u && (u.role==="provinsi" || (u.role==="kabkota" && u.kab===k));
+  if(canEdit){
+   html+=`<tr>
+    <td>${i+1}</td><td><b>${k}</b></td><td>${jumlah} sampel</td>
+    <td><select id="statusEdit_${i}"><option ${x.status==="Sudah Mengirim"?"selected":""}>Sudah Mengirim</option><option ${x.status==="Sedang Proses"?"selected":""}>Sedang Proses</option><option ${x.status==="Belum Mengirim"?"selected":""}>Belum Mengirim</option></select></td>
+    <td>${x.tanggal}</td>
+    <td><input id="progressEdit_${i}" type="number" min="0" max="100" value="${x.progress}" style="width:64px"></td>
+    <td><input id="catatanEdit_${i}" value="${(x.catatan||"").replace(/"/g,"&quot;")}" style="width:130px"></td>
+   </tr>
+   <tr><td colspan="7" style="text-align:right;padding-top:0;border-bottom:2px solid #e8edf3"><button class="secondary" onclick="saveMonitoringRow(${i},'${k}')">Simpan ${k}</button></td></tr>`;
+  } else {
+   html+=`<tr><td>${i+1}</td><td><b>${k}</b></td><td>${jumlah} sampel</td><td><span class="status ${x.status==="Sudah Mengirim"?"done":"pending"}">${x.status}</span></td><td>${x.tanggal}</td><td><div class="progress"><span style="width:${x.progress}%"></span></div><small>${x.progress}%</small></td><td>${x.catatan||"-"}</td></tr>`;
+  }
+ });
+ document.getElementById("monitorBody").innerHTML=html;
+ document.getElementById("sentCount").textContent=sent;document.getElementById("pendingCount").textContent=7-sent;document.getElementById("progressValue").textContent=Math.round(sent/7*100)+"%";
+ renderSampleGrid();
+}
+
+function saveMonitoringRow(i,k){
+ let status=document.getElementById("statusEdit_"+i).value;
+ let progress=Number(document.getElementById("progressEdit_"+i).value||0);
+ let catatan=document.getElementById("catatanEdit_"+i).value;
+ let bl=document.getElementById("month").value, th=document.getElementById("year").value;
+ let d=getData(),p=period();
+ d[p]=d[p]||{};
+ let prevEntry=d[p][k]||{};
+ let jumlahSampel=prevEntry.jumlahSampel||(getSamples()[k]||[]).length;
+ let tanggal = status==="Sudah Mengirim" ? new Date().toLocaleDateString("id-ID") : (prevEntry.tanggal||"-");
+ d[p][k]={status,tanggal,progress,catatan,jumlahSampel};
+ saveData(d);
+ saveMonitoringToServer({kab:k,bulan:bl,tahun:th,jumlahSampel,status,tanggal,progress,catatan});
+ renderMonitoring();
+}
+
+function resetData(){if(!confirm("Reset data monitoring untuk periode ini?"))return;let d=getData();delete d[period()];saveData(d);renderMonitoring()}
+
+function renderSampleGrid(){
+ let d=getData(),p=period(),samples=getSamples(),total=0;
+ let html=kabupaten.map(k=>{
+  let x=d[p]?.[k];
+  let n=x&&x.jumlahSampel?x.jumlahSampel:(samples[k]||[]).length;
+  total+=n;
+  return `<div style="background:#f8fafc;border:1px solid #e8edf3;border-radius:10px;padding:10px;text-align:center"><div style="font-size:12px;color:#64748b">${k}</div><div style="font-size:20px;font-weight:700;color:#7c4a2d">${n}</div></div>`;
+ }).join("");
+ document.getElementById("sampleGrid").innerHTML=html;
+ document.getElementById("sampleTotal").textContent=total;
+}
+
+function seed(){
+ let d=getData();if(Object.keys(d).length)return;
+ d["2026-September"]={};kabupaten.forEach((k,i)=>{d["2026-September"][k]={status:i<4?"Sudah Mengirim":"Belum Mengirim",tanggal:i<4?"23-09-2026":"-",progress:i<4?100:0,catatan:i<4?"Data diterima":"Menunggu laporan",jumlahSampel:(sampleDefaults[k]||[]).length}});saveData(d);
+}
+
+// ---------- EVALUASI ----------
+function rand(base){return Math.max(0,Math.round(base+(Math.random()-.5)*base*.25))}
+function changePct(now,old){return old===0?(now===0?0:100):(now-old)/old*100}
+function flagChange(v){return Math.abs(v)>50}
+
+function provinceEvaluations(){
+ let a=JSON.parse(localStorage.getItem(evalKey)||"[]");
+ if(!a.length && !USE_APPS_SCRIPT){
+  // Data contoh hanya dipakai di mode lokal (belum terhubung Apps Script).
+  let samples=getSamples();
+  kabupaten.forEach(k=>samples[k].forEach((nama,j)=>a.push({id:"E"+k+j, kab:k,nama,bulan:"September",tahun:2026,indikator:j%2?"Jumlah babi":"Jumlah sapi",nilai:rand(100),prev:rand(90),old:rand(95),status:"Menunggu konfirmasi",catatan:""})));
+  localStorage.setItem(evalKey,JSON.stringify(a));
+ }
+ return a;
+}
+
+function renderEvaluation(){
+ let m=evalMonth.value,y=+evalYear.value;
+ let recs=provinceEvaluations().filter(x=>x.bulan===m&&+x.tahun===y);
+ let vals=kabupaten.map(k=>{
+  let rk=recs.filter(x=>x.kab===k);
+  return {
+   k,
+   now:rk.reduce((a,b)=>a+Number(b.nilai||0),0),
+   prev:rk.reduce((a,b)=>a+Number(b.prev||0),0),
+   old:rk.reduce((a,b)=>a+Number(b.old||0),0)
+  };
+ });
+ let maxVal=Math.max(1,...vals.map(x=>x.now));
+ document.getElementById("chart").innerHTML=vals.map(x=>`<div class="barbox"><div class="barvalue">${x.now}</div><div class="bar" style="height:${Math.max(4,x.now/maxVal*220)}px"></div><div class="barlabel">${x.k.replace("Pangkalpinang","Pkp")}</div></div>`).join("");
+ document.getElementById("evalBody").innerHTML=vals.map(x=>{let mom=changePct(x.now,x.prev),yoy=changePct(x.now,x.old),alert=flagChange(mom)||flagChange(yoy);return `<tr style="${alert?'background:#fff4e6':''}"><td>${x.k}${alert?' <span class="status late">KONFIRMASI</span>':''}</td><td>${x.now}</td><td>${x.prev}</td><td>${mom.toFixed(1)}% ${flagChange(mom)?'<b style="color:#b45309">⚠ >50%</b>':''}</td><td>${x.old}</td><td>${yoy.toFixed(1)}% ${flagChange(yoy)?'<b style="color:#b45309">⚠ >50%</b>':''}</td></tr>`}).join("");
+ let total=vals.reduce((a,b)=>a+b.now,0),prev=vals.reduce((a,b)=>a+b.prev,0),old=vals.reduce((a,b)=>a+b.old,0),mom=changePct(total,prev),yoy=changePct(total,old),flagged=vals.filter(x=>flagChange(changePct(x.now,x.prev))||flagChange(changePct(x.now,x.old))).length;
+ document.getElementById("summary").innerHTML= recs.length ? `<p><b>Total bulan berjalan:</b> ${total} ekor</p><p><b>Perubahan terhadap bulan sebelumnya:</b> ${mom.toFixed(1)}%</p><p><b>Perubahan terhadap tahun sebelumnya:</b> ${yoy.toFixed(1)}%</p><div class="notice" style="background:#fff4e6;color:#92400e"><b>${flagged} kabupaten/kota</b> memerlukan konfirmasi karena perubahan absolut lebih dari <b>50%</b>.</div>` : `<p style="color:#64748b">Belum ada data evaluasi untuk periode ini.</p>`;
+}
+
+function renderProvinceEvaluations(){
+ let u=getUser(),m=provEvalMonth.value,y=+provEvalYear.value,a=provinceEvaluations().filter(x=>x.bulan===m&&+x.tahun===y);
+ if(u&&u.role==="kabkota")a=a.filter(x=>x.kab===u.kab);
+ document.getElementById("provinceEvalBody").innerHTML=a.length?a.map(x=>{let c=changePct(x.nilai,x.prev);return `<tr><td>${x.kab}</td><td>${x.nama}</td><td>${x.bulan} ${x.tahun}</td><td>${x.indikator}</td><td>${x.nilai}</td><td>${x.prev}</td><td>${x.old}</td><td><b style="color:${Math.abs(c)>50?'#b45309':'#166534'}">${c.toFixed(1)}% ${Math.abs(c)>50?'⚠':''}</b></td><td><button class="secondary" onclick="selectEvaluation('${x.id}')">${x.status==="Sudah dikonfirmasi"?"Lihat":"Konfirmasi"}</button></td></tr>`}).join(""):`<tr><td colspan="9">Belum ada evaluasi dari Provinsi untuk periode ini.</td></tr>`;
+}
+
+function selectEvaluation(id){
+ let x=provinceEvaluations().find(a=>a.id===id);if(!x)return;
+ selectedEvalId.value=id;kab.value=x.kab;populateSampleNames(x.kab);namaSampel.value=x.nama;confMonth.value=x.bulan;confYear.value=x.tahun;catatan.value=x.catatan||"";document.getElementById("confirmForm").scrollIntoView({behavior:"smooth"});
+}
+
+document.getElementById("evalForm").addEventListener("submit", async e=>{
+ e.preventDefault();
+ let u=getUser();
+ if(!u){ alert("Silakan login sebagai akun Provinsi terlebih dahulu."); loginScreen.style.display="flex"; return; }
+ if(u.role!=="provinsi"){ alert("Hanya akun Provinsi yang dapat menambah/memperbarui evaluasi."); return; }
+ let record={
+  kab:evalKab.value, nama:evalNama.value, indikator:evalIndikator.value.trim(),
+  bulan:evalFormMonth.value, tahun:Number(evalFormYear.value),
+  nilai:Number(evalNilai.value||0), prev:Number(evalPrev.value||0), old:Number(evalOld.value||0),
+  catatan:evalCatatan.value
+ };
+ if(!record.indikator){ alert("Indikator wajib diisi."); return; }
+ let perubahan = record.prev===0 ? (record.nilai===0?0:100) : Number((((record.nilai-record.prev)/Math.abs(record.prev))*100).toFixed(2));
+ record.status = Math.abs(perubahan)>50 ? "Menunggu konfirmasi" : "Tidak memerlukan konfirmasi";
+ record.id = ("E-"+record.kab+"-"+record.nama+"-"+record.indikator+"-"+record.bulan+"-"+record.tahun).replace(/\s+/g,"_");
+ let a=provinceEvaluations();
+ let idx=a.findIndex(x=>x.id===record.id);
+ if(idx>-1) a[idx]=record; else a.unshift(record);
+ localStorage.setItem(evalKey,JSON.stringify(a));
+ await saveEvaluationToServer(record);
+ e.target.reset(); evalFormMonth.value="September"; evalFormYear.value=2026; populateEvalNama();
+ renderEvaluation(); renderProvinceEvaluations();
+ alert("Evaluasi tersimpan.");
+});
+
+// ---------- KONFIRMASI ----------
+function populateSampleNames(k){namaSampel.innerHTML=(getSamples()[k]||[]).map(x=>`<option>${x}</option>`).join("")}
+function getConfs(){return JSON.parse(localStorage.getItem(confKey)||"[]")}
+function renderConfirmations(){
+ let a=getConfs(),u=getUser();if(u&&u.role==="kabkota")a=a.filter(x=>x.kab===u.kab);
+ document.getElementById("confirmBody").innerHTML=a.length?a.map((x,i)=>`<tr><td>${x.kab}</td><td>${x.namaSampel}</td><td>${x.bulan} ${x.tahun}</td><td>${x.status}</td><td>${x.jumlah}</td><td>${x.petugas||"-"}</td><td>${x.catatan||"-"}</td><td>${u?.role==="provinsi"?"-":`<button class="secondary" onclick="hapusKonfirmasi('${x.id}')">Hapus</button>`}</td></tr>`).join(""):`<tr><td colspan="8">Belum ada konfirmasi.</td></tr>`;
+}
+function hapusKonfirmasi(id){let a=getConfs().filter(x=>x.id!==id);localStorage.setItem(confKey,JSON.stringify(a));renderConfirmations()}
+
+document.getElementById("confirmForm").addEventListener("submit",async e=>{
+ e.preventDefault();let u=getUser();if(!u){alert("Silakan login.");return}
+ if(u.role==="provinsi"){alert("Akun Provinsi digunakan untuk menginput evaluasi, bukan mengisi konfirmasi Kabupaten/Kota.");return}
+ let a=getConfs(),id=selectedEvalId.value||("C"+Date.now());
+ let record={id,evalId:selectedEvalId.value,kab:kab.value,namaSampel:namaSampel.value,bulan:confMonth.value,tahun:confYear.value,status:confStatus.value,jumlah:jumlahKonfirmasi.value,petugas:u.nama,tgl:tgl.value,catatan:catatan.value,savedAt:new Date().toISOString()};
+ a.unshift(record);
+ localStorage.setItem(confKey,JSON.stringify(a));
+ await saveConfirmationToServer(record);
+ if(selectedEvalId.value){let ev=provinceEvaluations();let x=ev.find(a=>a.id===selectedEvalId.value);if(x){x.status="Sudah dikonfirmasi";x.catatan=catatan.value;localStorage.setItem(evalKey,JSON.stringify(ev));}}
+ alert("Konfirmasi berhasil disimpan. Nama petugas tercatat dari akun login.");
+ e.target.reset();selectedEvalId.value="";confYear.value=2026;petugas.value=u.nama;populateSampleNames(kab.value);renderProvinceEvaluations();renderConfirmations();
+});
+
+// ---------- LOGIN / SESI ----------
+function setupLogin(){
+ loginKab.innerHTML=kabupaten.map(k=>`<option>${k}</option>`).join("");
+ const dbStatus=document.getElementById("dbStatus");
+ if(USE_APPS_SCRIPT){
+  dbStatus.textContent="Terhubung ke Apps Script";
+  dbStatus.className="status done";
+  loadFromAppsScript();
+ } else {
+  dbStatus.textContent="Mode lokal — isi APPS_SCRIPT_URL untuk menghubungkan database";
+  dbStatus.className="status pending";
+ }
+ const u=getUser();
+ if(u){
+  loggedUser.textContent=`${u.nama} • ${u.role==="provinsi"?"Provinsi":u.kab}`;
+  userBar.style.display="flex";
+  petugas.value=u.nama;
+  applyRole(u);
+ } else {
+  userBar.style.display="none";
+ }
+ loginRole.onchange=()=>loginKabWrap.style.display=loginRole.value==="kabkota"?"block":"none";
+}
+
+async function login(){
+ let username=loginUser.value.trim(),password=loginPass.value,role=loginRole.value,kabVal=loginKab.value;
+ if(!username||!password){alert("Username dan password wajib diisi.");return}
+ let u;
+ if(USE_APPS_SCRIPT){
+  const result=await api("login",{username,password,kab:role==="kabkota"?kabVal:""});
+  if(!result.ok){alert(result.message||"Login gagal.");return}
+  u=result.user;
+ } else {
+  u={username,nama:username,role,kab:kabVal};
+ }
+ sessionStorage.setItem("loggedUser",JSON.stringify(u));
+ loginScreen.style.display="none";
+ loggedUser.textContent=`${u.nama} • ${u.role==="provinsi"?"Provinsi":u.kab}`;
+ userBar.style.display="flex";
+ petugas.value=u.nama;applyRole(u);renderMonitoring();renderProvinceEvaluations();renderConfirmations();
+ document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));
+ document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+ document.getElementById("konfirmasi").classList.add("active");
+ document.querySelector('[onclick="showTab(\'konfirmasi\',this)"]').classList.add("active");
+}
+
+function logout(){sessionStorage.removeItem("loggedUser");location.reload()}
+
+function applyRole(u){
+ // Kedua peran (provinsi & kabkota) memiliki akses ke tab Konfirmasi;
+ // pembatasan data per baris sudah ditangani di masing-masing fungsi render.
+ document.querySelector('[onclick="showTab(\'konfirmasi\',this)"]').style.display="block";
+}
+
+// ---------- INIT ----------
+kab.innerHTML=kabupaten.map(k=>`<option>${k}</option>`).join("");
+kab.onchange=()=>populateSampleNames(kab.value);
+populateSampleNames(kab.value);
+
+evalKab.innerHTML=kabupaten.map(k=>`<option>${k}</option>`).join("");
+evalKab.onchange=()=>populateEvalNama();
+function populateEvalNama(){evalNama.innerHTML=(getSamples()[evalKab.value]||[]).map(x=>`<option>${x}</option>`).join("")}
+populateEvalNama();
+
+seed();setupLogin();renderMonitoring();renderEvaluation();renderProvinceEvaluations();renderConfirmations();
+</script>
+</body>
+</html>
